@@ -1,0 +1,2127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mini-Pupillage Tracker — London Bar</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,600;1,400&family=Cinzel:wght@400;600&family=Source+Code+Pro:wght@400&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://unpkg.com/docx@7.8.2/build/index.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<style>
+:root {
+  --navy:        #07111f;
+  --navy-light:  #0d1f38;
+  --navy-mid:    #14305a;
+  --navy-card:   #0b1a30;
+  --gold:        #c9a84c;
+  --gold-light:  #e8cc78;
+  --gold-dim:    #7a6030;
+  --gold-muted:  rgba(201,168,76,0.15);
+  --text:        #dce8f5;
+  --text-muted:  #7a9abf;
+  --border:      #1b3352;
+  --border-mid:  #243f60;
+  --success:     #2ecc71;
+  --warning:     #e8a020;
+  --danger:      #d94040;
+  --radius:      6px;
+  --radius-lg:   10px;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--navy);
+  color: var(--text);
+  font-family: 'EB Garamond', Georgia, serif;
+  font-size: 16px;
+  min-height: 100vh;
+  line-height: 1.6;
+}
+
+/* ——— Scrollbar ——— */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--navy); }
+::-webkit-scrollbar-thumb { background: var(--gold-dim); border-radius: 3px; }
+
+/* ——— Header ——— */
+.header {
+  background: linear-gradient(160deg, #040c18 0%, #0a1c36 60%, #0d2244 100%);
+  border-bottom: 1px solid var(--gold-dim);
+  padding: 0 32px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  box-shadow: 0 2px 24px rgba(0,0,0,0.5);
+}
+
+.header-brand {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 18px 0;
+}
+
+.header-seal {
+  width: 48px;
+  height: 48px;
+  border: 1.5px solid var(--gold-dim);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  color: var(--gold);
+  flex-shrink: 0;
+  background: rgba(201,168,76,0.06);
+}
+
+.header h1 {
+  font-family: 'Cinzel', serif;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--gold-light);
+  letter-spacing: 1px;
+  line-height: 1.2;
+}
+
+.header p {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  font-style: italic;
+  letter-spacing: 0.3px;
+}
+
+.header-rule {
+  width: 1px;
+  height: 40px;
+  background: var(--border);
+}
+
+.header-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 12px 0;
+}
+
+/* ——— Buttons ——— */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 18px;
+  border: none;
+  border-radius: var(--radius);
+  cursor: pointer;
+  font-size: 0.82rem;
+  font-family: 'EB Garamond', serif;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  transition: all 0.18s ease;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.btn:disabled { opacity: 0.55; cursor: not-allowed; }
+
+.btn-gold {
+  background: linear-gradient(135deg, #b8922e, #d4a843);
+  color: #07111f;
+}
+.btn-gold:hover:not(:disabled) { background: linear-gradient(135deg, #c9a030, #e0b545); box-shadow: 0 0 12px rgba(201,168,76,0.3); }
+
+.btn-outline {
+  background: transparent;
+  border: 1px solid var(--gold-dim);
+  color: var(--gold);
+}
+.btn-outline:hover:not(:disabled) { background: var(--gold-muted); border-color: var(--gold); }
+
+.btn-ghost {
+  background: transparent;
+  border: 1px solid var(--border-mid);
+  color: var(--text-muted);
+}
+.btn-ghost:hover:not(:disabled) { background: rgba(255,255,255,0.04); color: var(--text); }
+
+.btn-danger-soft {
+  background: rgba(217,64,64,0.12);
+  border: 1px solid rgba(217,64,64,0.4);
+  color: #f87171;
+}
+.btn-danger-soft:hover:not(:disabled) { background: rgba(217,64,64,0.2); }
+
+.btn-sm { padding: 5px 12px; font-size: 0.77rem; }
+.btn-xs { padding: 3px 9px; font-size: 0.72rem; }
+
+/* ——— Container ——— */
+.container {
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 28px 28px 60px;
+}
+
+/* ——— Section headings ——— */
+.section-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+
+.section-head h2 {
+  font-family: 'Cinzel', serif;
+  font-size: 0.85rem;
+  font-weight: 600;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--gold);
+}
+
+.section-head .badge {
+  background: var(--gold-muted);
+  border: 1px solid var(--gold-dim);
+  color: var(--gold);
+  border-radius: 12px;
+  padding: 1px 9px;
+  font-size: 0.72rem;
+  font-family: 'Source Code Pro', monospace;
+  font-weight: 400;
+}
+
+.section-head .sub {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.hr {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 36px 0;
+}
+
+/* ——— Collapsible panel ——— */
+.panel {
+  background: var(--navy-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  margin-bottom: 20px;
+  overflow: hidden;
+}
+
+.panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 20px;
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.15s;
+}
+
+.panel-header:hover { background: rgba(255,255,255,0.02); }
+
+.panel-header-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.panel-header h3 {
+  font-family: 'Cinzel', serif;
+  font-size: 0.82rem;
+  font-weight: 600;
+  letter-spacing: 0.8px;
+  color: var(--gold);
+}
+
+.panel-header .sub {
+  font-size: 0.74rem;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.panel-chevron {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  transition: transform 0.25s;
+}
+
+.panel-chevron.open { transform: rotate(180deg); }
+
+.panel-body {
+  padding: 18px 20px;
+  border-top: 1px solid var(--border);
+  display: none;
+}
+
+.panel-body.open { display: block; }
+
+/* ——— Template editor ——— */
+.template-textarea {
+  width: 100%;
+  height: 180px;
+  background: var(--navy);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text);
+  padding: 12px;
+  font-family: 'Source Code Pro', monospace;
+  font-size: 0.8rem;
+  resize: vertical;
+  line-height: 1.6;
+  transition: border-color 0.15s;
+}
+.template-textarea:focus { outline: none; border-color: var(--gold-dim); }
+
+.placeholder-hint {
+  font-size: 0.73rem;
+  color: var(--text-muted);
+  margin-top: 10px;
+  line-height: 1.7;
+}
+
+.placeholder-hint code {
+  background: var(--gold-muted);
+  color: var(--gold-light);
+  padding: 1px 6px;
+  border-radius: 3px;
+  font-family: 'Source Code Pro', monospace;
+  font-size: 0.78rem;
+}
+
+/* ——— CV section ——— */
+.cv-panel {
+  background: var(--navy-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 16px 20px;
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.cv-info-wrap {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.cv-icon {
+  width: 38px;
+  height: 38px;
+  border: 1px solid var(--border-mid);
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+.cv-name {
+  font-size: 0.87rem;
+  color: var(--gold-light);
+  font-style: italic;
+}
+
+.cv-sub {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  margin-top: 1px;
+}
+
+.cv-buttons { display: flex; gap: 8px; flex-wrap: wrap; }
+
+/* ——— Filter bar ——— */
+.filter-bar {
+  background: var(--navy-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 16px 20px;
+  margin-bottom: 24px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  align-items: flex-end;
+}
+
+.filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 150px;
+}
+
+.filter-group.search-group { min-width: 220px; flex: 1; }
+
+.filter-label {
+  font-family: 'Cinzel', serif;
+  font-size: 0.66rem;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.filter-bar select,
+.filter-bar input[type=text] {
+  background: var(--navy);
+  border: 1px solid var(--border-mid);
+  border-radius: var(--radius);
+  color: var(--text);
+  padding: 7px 10px;
+  font-family: 'EB Garamond', serif;
+  font-size: 0.85rem;
+  width: 100%;
+  transition: border-color 0.15s;
+}
+
+.filter-bar select:focus,
+.filter-bar input[type=text]:focus {
+  outline: none;
+  border-color: var(--gold-dim);
+}
+
+.filter-count-wrap {
+  margin-left: auto;
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+#filter-count {
+  font-size: 0.76rem;
+  color: var(--text-muted);
+  font-style: italic;
+  white-space: nowrap;
+}
+
+/* ——— Cards grid ——— */
+.cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 18px;
+  margin-bottom: 12px;
+}
+
+/* ——— Card ——— */
+.card {
+  background: var(--navy-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 13px;
+  position: relative;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.card:hover {
+  border-color: var(--border-mid);
+  box-shadow: 0 4px 28px rgba(0,0,0,0.35);
+}
+
+.card-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.card-source {
+  flex-shrink: 0;
+  font-family: 'Source Code Pro', monospace;
+  font-size: 0.62rem;
+  letter-spacing: 0.5px;
+  padding: 2px 8px;
+  border-radius: 3px;
+  text-transform: uppercase;
+}
+
+.card-source.manual {
+  background: rgba(122,154,191,0.12);
+  border: 1px solid rgba(122,154,191,0.25);
+  color: var(--text-muted);
+}
+
+.card-source.auto {
+  background: var(--gold-muted);
+  border: 1px solid var(--gold-dim);
+  color: var(--gold);
+}
+
+.card-chambers {
+  font-family: 'Cinzel', serif;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--gold-light);
+  line-height: 1.3;
+}
+
+.card-location {
+  font-size: 0.76rem;
+  color: var(--text-muted);
+  margin-top: 3px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.tag {
+  background: rgba(20,48,90,0.8);
+  border: 1px solid var(--border-mid);
+  color: var(--text-muted);
+  border-radius: 3px;
+  padding: 2px 8px;
+  font-size: 0.7rem;
+  letter-spacing: 0.2px;
+}
+
+.dates-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.date-cell { display: flex; flex-direction: column; gap: 2px; }
+
+.date-cell-label {
+  font-family: 'Cinzel', serif;
+  font-size: 0.6rem;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.date-cell-value {
+  font-size: 0.82rem;
+  color: var(--text);
+}
+
+.date-cell-value.urgent { color: #f87171; font-weight: 600; }
+.date-cell-value.soon   { color: var(--warning); }
+.date-cell-value.fresh  { color: var(--success); }
+
+.card-notes {
+  font-size: 0.79rem;
+  color: var(--text-muted);
+  font-style: italic;
+  line-height: 1.55;
+  border-left: 2px solid var(--gold-dim);
+  padding-left: 10px;
+}
+
+.card-link a {
+  color: var(--gold);
+  font-size: 0.78rem;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: color 0.15s;
+}
+
+.card-link a:hover { color: var(--gold-light); text-decoration: underline; }
+
+/* ——— Status selector ——— */
+.status-select {
+  background: var(--navy);
+  border: 1px solid var(--border-mid);
+  border-radius: var(--radius);
+  color: var(--text-muted);
+  padding: 7px 10px;
+  font-family: 'EB Garamond', serif;
+  font-size: 0.85rem;
+  width: 100%;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+  appearance: auto;
+}
+
+.status-select:focus { outline: none; border-color: var(--gold-dim); }
+.status-select.s-applied   { border-color: var(--gold-dim); color: var(--gold-light); }
+.status-select.s-interview { border-color: #6d3eb8; color: #c084fc; }
+.status-select.s-completed { border-color: #1d7a40; color: #4ade80; }
+.status-select.s-rejected  { border-color: #7a2020; color: #f87171; }
+
+/* ——— Card action row ——— */
+.card-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+/* ——— Empty state ——— */
+.empty-state {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 60px 30px;
+  color: var(--text-muted);
+}
+
+.empty-icon { font-size: 40px; margin-bottom: 14px; opacity: 0.6; }
+.empty-state p { font-size: 0.87rem; line-height: 1.7; }
+
+/* ——— Loading spinner ——— */
+.spinner {
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  border: 2px solid rgba(201,168,76,0.2);
+  border-top-color: var(--gold);
+  border-radius: 50%;
+  animation: spin 0.65s linear infinite;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.loading-state {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 80px 30px;
+  color: var(--text-muted);
+  font-style: italic;
+  font-size: 0.87rem;
+}
+
+/* ——— My Applications table ——— */
+.table-wrap { overflow-x: auto; border-radius: var(--radius-lg); border: 1px solid var(--border); }
+
+.tracker-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.83rem;
+}
+
+.tracker-table th {
+  background: var(--navy-light);
+  color: var(--gold);
+  font-family: 'Cinzel', serif;
+  font-size: 0.65rem;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  font-weight: 600;
+  padding: 12px 16px;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+
+.tracker-table td {
+  padding: 11px 16px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text);
+  vertical-align: middle;
+}
+
+.tracker-table tr:last-child td { border-bottom: none; }
+.tracker-table tr:hover td { background: rgba(255,255,255,0.015); }
+
+.status-pill {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 12px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.4px;
+  font-family: 'EB Garamond', serif;
+}
+
+.pill-applied   { background: var(--gold-muted); color: var(--gold); border: 1px solid var(--gold-dim); }
+.pill-interview { background: rgba(109,62,184,0.15); color: #c084fc; border: 1px solid #6d3eb8; }
+.pill-completed { background: rgba(29,122,64,0.15); color: #4ade80; border: 1px solid #1d7a40; }
+.pill-rejected  { background: rgba(122,32,32,0.2); color: #f87171; border: 1px solid #7a2020; }
+
+/* ——— Visitor log ——— */
+.visitor-log {
+  background: var(--navy-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+  margin-top: 40px;
+}
+
+.visitor-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.76rem;
+  margin-top: 14px;
+}
+
+.visitor-table th {
+  font-family: 'Cinzel', serif;
+  font-size: 0.62rem;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  padding: 6px 10px;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+  font-weight: 400;
+}
+
+.visitor-table td {
+  padding: 8px 10px;
+  border-bottom: 1px solid rgba(27,51,82,0.5);
+  color: var(--text-muted);
+  font-family: 'Source Code Pro', monospace;
+  font-size: 0.72rem;
+}
+
+.visitor-table td.country { font-family: 'EB Garamond', serif; font-size: 0.78rem; }
+.visitor-table tr:last-child td { border-bottom: none; }
+
+/* ——— Modals ——— */
+.modal-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(4,12,24,0.82);
+  z-index: 500;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  backdrop-filter: blur(3px);
+}
+
+.modal-overlay.active { display: flex; }
+
+.modal {
+  background: var(--navy-light);
+  border: 1px solid var(--gold-dim);
+  border-radius: var(--radius-lg);
+  width: 100%;
+  max-width: 680px;
+  max-height: 92vh;
+  overflow-y: auto;
+  padding: 28px 30px;
+  position: relative;
+  box-shadow: 0 24px 80px rgba(0,0,0,0.6);
+  animation: modal-in 0.2s ease;
+}
+
+@keyframes modal-in {
+  from { opacity: 0; transform: translateY(-12px) scale(0.98); }
+  to   { opacity: 1; transform: translateY(0)    scale(1); }
+}
+
+.modal-close {
+  position: absolute;
+  top: 18px;
+  right: 18px;
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 1.1rem;
+  cursor: pointer;
+  line-height: 1;
+  transition: color 0.15s;
+  padding: 4px;
+}
+
+.modal-close:hover { color: var(--text); }
+
+.modal h2 {
+  font-family: 'Cinzel', serif;
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  color: var(--gold);
+  margin-bottom: 6px;
+  padding-right: 28px;
+}
+
+.modal-sub {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  font-style: italic;
+  margin-bottom: 20px;
+  line-height: 1.5;
+}
+
+/* ——— Form elements ——— */
+.form-group { margin-bottom: 14px; }
+
+.form-group label {
+  display: block;
+  font-family: 'Cinzel', serif;
+  font-size: 0.65rem;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 5px;
+}
+
+.form-group input,
+.form-group textarea,
+.form-group select {
+  width: 100%;
+  background: var(--navy);
+  border: 1px solid var(--border-mid);
+  border-radius: var(--radius);
+  color: var(--text);
+  padding: 8px 12px;
+  font-family: 'EB Garamond', serif;
+  font-size: 0.87rem;
+  transition: border-color 0.15s;
+}
+
+.form-group textarea {
+  height: 90px;
+  resize: vertical;
+  line-height: 1.55;
+}
+
+.form-group input:focus,
+.form-group textarea:focus,
+.form-group select:focus { outline: none; border-color: var(--gold-dim); }
+
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+.form-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+
+/* ——— Cover letter modal ——— */
+.cl-textarea {
+  width: 100%;
+  height: 290px;
+  background: var(--navy);
+  border: 1px solid var(--border-mid);
+  border-radius: var(--radius);
+  color: var(--text);
+  padding: 14px;
+  font-family: 'EB Garamond', serif;
+  font-size: 0.9rem;
+  resize: vertical;
+  line-height: 1.7;
+  margin-bottom: 16px;
+  transition: border-color 0.15s;
+}
+
+.cl-textarea:focus { outline: none; border-color: var(--gold-dim); }
+
+/* ——— Download group ——— */
+.download-section {
+  border-top: 1px solid var(--border);
+  padding-top: 14px;
+  margin-top: 4px;
+}
+
+.download-label {
+  font-family: 'Cinzel', serif;
+  font-size: 0.65rem;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 10px;
+}
+
+.download-btns { display: flex; gap: 8px; flex-wrap: wrap; }
+
+/* ——— Notification toast ——— */
+.toast {
+  position: fixed;
+  bottom: 28px;
+  right: 28px;
+  background: var(--navy-mid);
+  border: 1px solid var(--border-mid);
+  border-radius: var(--radius);
+  padding: 12px 20px;
+  font-size: 0.84rem;
+  color: var(--text);
+  z-index: 999;
+  max-width: 340px;
+  transform: translateY(20px);
+  opacity: 0;
+  transition: all 0.28s ease;
+  pointer-events: none;
+  line-height: 1.5;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+}
+
+.toast.visible { transform: translateY(0); opacity: 1; }
+.toast.t-success { border-color: var(--success); }
+.toast.t-error   { border-color: var(--danger); }
+
+/* ——— Config warning banner ——— */
+.config-banner {
+  background: rgba(217,64,64,0.1);
+  border: 1px solid rgba(217,64,64,0.4);
+  border-radius: var(--radius);
+  padding: 14px 18px;
+  margin-bottom: 20px;
+  font-size: 0.85rem;
+  color: #f87171;
+  line-height: 1.6;
+}
+
+/* ——— Responsive ——— */
+@media (max-width: 800px) {
+  .header { padding: 0 16px; }
+  .header h1 { font-size: 0.95rem; }
+  .header-rule { display: none; }
+  .container { padding: 20px 16px 50px; }
+  .cards-grid { grid-template-columns: 1fr; }
+  .form-row { grid-template-columns: 1fr; }
+  .filter-bar { flex-direction: column; align-items: stretch; }
+  .filter-group { min-width: unset !important; }
+  .filter-count-wrap { margin-left: 0; }
+  .modal { padding: 22px 18px; }
+  .dates-row { grid-template-columns: 1fr 1fr; }
+}
+
+@media (max-width: 480px) {
+  .card-actions { flex-direction: column; }
+  .card-actions .btn { justify-content: center; }
+  .download-btns { flex-direction: column; }
+}
+</style>
+</head>
+<body>
+
+<!-- ============================================================
+  Header
+============================================================ -->
+<header class="header">
+  <div class="header-brand">
+    <div class="header-seal">⚖</div>
+    <div>
+      <h1>Mini-Pupillage Tracker</h1>
+      <p>London Bar — Shared Openings Database</p>
+    </div>
+  </div>
+  <div class="header-rule"></div>
+  <div class="header-actions">
+    <button class="btn btn-ghost btn-sm" onclick="exportCSV()">↓ Export CSV</button>
+    <button class="btn btn-gold btn-sm" onclick="openAddModal()">+ Add Opening</button>
+  </div>
+</header>
+
+<!-- ============================================================
+  Main container
+============================================================ -->
+<div class="container">
+
+  <!-- Config warning (shown only if placeholders not replaced) -->
+  <div id="config-banner" class="config-banner" style="display:none">
+    <strong>Setup required:</strong> Fill in <code>SUPABASE_URL</code> and <code>SUPABASE_ANON_KEY</code>
+    in the CONFIG block at the top of the &lt;script&gt; section before deploying.
+  </div>
+
+  <!-- ——— Cover letter template panel ——— -->
+  <div class="panel">
+    <div class="panel-header" id="template-toggle" role="button" tabindex="0" aria-expanded="false">
+      <div class="panel-header-left">
+        <span style="font-size:1rem">✉</span>
+        <div>
+          <h3>Cover Letter Template</h3>
+          <div class="sub">Stored in your browser only — invisible to other users</div>
+        </div>
+      </div>
+      <span class="panel-chevron" id="template-chevron">▾</span>
+    </div>
+    <div class="panel-body" id="template-body">
+      <textarea class="template-textarea" id="template-textarea"
+        placeholder="Paste your base cover letter here. Use the placeholders listed below.
+
+Example:
+
+Dear Sir or Madam,
+
+I am writing to apply for a mini-pupillage at [CHAMBERS_NAME], specialising in [PRACTICE_AREA].
+
+The deadline for applications is [DEADLINE]. I am writing on [DATE_TODAY].
+
+I am a final-year LLB student with a keen interest in...
+
+Yours faithfully,
+[Your Name]"></textarea>
+      <div class="placeholder-hint">
+        Auto-substituted placeholders:&ensp;
+        <code>[CHAMBERS_NAME]</code>&ensp;
+        <code>[PRACTICE_AREA]</code>&ensp;
+        <code>[DEADLINE]</code>&ensp;
+        <code>[DATE_TODAY]</code>
+      </div>
+      <div style="margin-top:12px">
+        <button class="btn btn-gold btn-sm" id="template-save-btn">Save Template</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ——— CV panel ——— -->
+  <div class="cv-panel">
+    <div class="cv-info-wrap" id="cv-info">
+      <!-- Rendered by JS -->
+    </div>
+    <div class="cv-buttons" id="cv-buttons">
+      <!-- Rendered by JS -->
+    </div>
+  </div>
+  <input type="file" id="cv-upload-input" accept=".pdf,.docx,.doc,.txt,.rtf" style="display:none">
+
+  <!-- ——— Filter bar ——— -->
+  <div class="filter-bar">
+    <div class="filter-group search-group">
+      <div class="filter-label">Search</div>
+      <input type="text" id="filter-search" placeholder="Chambers, practice area, location…">
+    </div>
+    <div class="filter-group">
+      <div class="filter-label">Your Status</div>
+      <select id="filter-status">
+        <option value="">All Statuses</option>
+        <option value="not-applied">Not Applied</option>
+        <option value="applied">Applied</option>
+        <option value="interview">Interview Offered</option>
+        <option value="completed">Completed</option>
+        <option value="rejected">Rejected</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <div class="filter-label">Practice Area</div>
+      <select id="filter-area">
+        <option value="">All Areas</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <div class="filter-label">Deadline</div>
+      <select id="filter-deadline">
+        <option value="">Any Deadline</option>
+        <option value="week">This Week</option>
+        <option value="month">This Month</option>
+        <option value="future">Future (beyond this month)</option>
+      </select>
+    </div>
+    <div class="filter-count-wrap">
+      <span id="filter-count" style="font-size:0.76rem;color:var(--text-muted);font-style:italic">—</span>
+      <button class="btn btn-ghost btn-xs" onclick="clearFilters()">Clear</button>
+    </div>
+  </div>
+
+  <!-- ——— All openings heading ——— -->
+  <div class="section-head" style="margin-bottom:16px">
+    <h2>All Openings</h2>
+    <span class="badge" id="openings-count">0</span>
+    <span class="sub">sorted by deadline</span>
+  </div>
+
+  <!-- ——— Cards grid ——— -->
+  <div class="cards-grid" id="cards-container">
+    <div class="loading-state">
+      <div class="spinner"></div>
+      <span>Fetching openings from Supabase…</span>
+    </div>
+  </div>
+
+  <div class="hr"></div>
+
+  <!-- ——— My Applications ——— -->
+  <div class="section-head">
+    <h2>My Applications</h2>
+    <span class="badge" id="my-apps-count">0</span>
+    <span class="sub">stored in your browser only</span>
+  </div>
+  <div id="my-apps-container">
+    <!-- Rendered by JS -->
+  </div>
+
+  <!-- ——— Visitor Log ——— -->
+  <div class="visitor-log">
+    <div class="section-head" style="margin-bottom:0">
+      <h2>Visitor Log</h2>
+      <span class="sub">visible to all users · last 50 visits</span>
+    </div>
+    <table class="visitor-table">
+      <thead>
+        <tr>
+          <th>IP Address</th>
+          <th>Country</th>
+          <th>Timestamp (Local)</th>
+          <th>User Agent</th>
+        </tr>
+      </thead>
+      <tbody id="visitor-log-body">
+        <tr><td colspan="4" style="text-align:center;padding:20px">Loading…</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+</div><!-- /container -->
+
+
+<!-- ============================================================
+  Modal: Add Opening
+============================================================ -->
+<div class="modal-overlay" id="add-modal" onclick="handleOverlayClick(event, 'add-modal')">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('add-modal')" aria-label="Close">✕</button>
+    <h2>Add New Opening</h2>
+    <p class="modal-sub">This opening will be visible to everyone who visits the tracker.</p>
+    <form id="add-form">
+      <div class="form-group">
+        <label>Chambers Name *</label>
+        <input type="text" name="chambers" required placeholder="e.g. Doughty Street Chambers">
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Website / Application URL</label>
+          <input type="url" name="website" placeholder="https://…">
+        </div>
+        <div class="form-group">
+          <label>Application Deadline</label>
+          <input type="date" name="deadline">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Practice Areas</label>
+          <input type="text" name="practice_areas" placeholder="e.g. Criminal, Family">
+        </div>
+        <div class="form-group">
+          <label>Location</label>
+          <input type="text" name="location" placeholder="e.g. Temple, London EC4">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Notes</label>
+        <textarea name="notes" placeholder="Any additional details about this opening…"></textarea>
+      </div>
+      <div class="form-footer">
+        <button type="button" class="btn btn-ghost" onclick="closeModal('add-modal')">Cancel</button>
+        <button type="submit" class="btn btn-gold" id="add-submit-btn">Add Opening</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+
+<!-- ============================================================
+  Modal: Cover Letter
+============================================================ -->
+<div class="modal-overlay" id="cl-modal" onclick="handleOverlayClick(event, 'cl-modal')">
+  <div class="modal" style="max-width:760px">
+    <button class="modal-close" onclick="closeModal('cl-modal')" aria-label="Close">✕</button>
+    <h2 id="cl-modal-title">Cover Letter</h2>
+    <p class="modal-sub">Edit the letter below. Placeholders have been substituted automatically.</p>
+    <textarea class="cl-textarea" id="cl-textarea" spellcheck="true"></textarea>
+    <div class="download-section">
+      <div class="download-label">Download as</div>
+      <div class="download-btns">
+        <button class="btn btn-outline btn-sm" onclick="downloadCoverLetter('txt')">TXT</button>
+        <button class="btn btn-outline btn-sm" onclick="downloadCoverLetter('docx')">DOCX</button>
+        <button class="btn btn-outline btn-sm" onclick="downloadCoverLetter('pdf')">PDF</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ============================================================
+  Modal: CV Download
+============================================================ -->
+<div class="modal-overlay" id="cv-modal" onclick="handleOverlayClick(event, 'cv-modal')">
+  <div class="modal" style="max-width:440px">
+    <button class="modal-close" onclick="closeModal('cv-modal')" aria-label="Close">✕</button>
+    <h2>Download CV</h2>
+    <p class="modal-sub">
+      If your original file is DOCX, the DOCX download serves the original file unchanged.
+      If it is a PDF, the PDF download serves the original. The TXT download extracts readable
+      text from the stored file.
+    </p>
+    <div class="download-section">
+      <div class="download-label">Download as</div>
+      <div class="download-btns">
+        <button class="btn btn-outline btn-sm" onclick="downloadCV('txt')">TXT</button>
+        <button class="btn btn-outline btn-sm" onclick="downloadCV('docx')">DOCX</button>
+        <button class="btn btn-outline btn-sm" onclick="downloadCV('pdf')">PDF</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ============================================================
+  Toast notification
+============================================================ -->
+<div class="toast" id="toast"></div>
+
+
+<!-- ============================================================
+  Script
+============================================================ -->
+<script>
+/* ============================================================
+ *  CONFIG — replace these two values before deploying
+ *  Do not commit real credentials to a public repository.
+ * ============================================================ */
+const SUPABASE_URL      = 'https://kpudotemarnkakftkmvt.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtwdWRvdGVtYXJua2FrZnRrbXZ0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY5NDExNzcsImV4cCI6MjA5MjUxNzE3N30.ZGvJ9c4sMLQOJKbsRQGZVgWEDJnimdeod-_y991Q4RY';
+/* ============================================================ */
+
+// ——— Supabase client ———
+let _db = null;
+if (SUPABASE_URL !== 'YOUR_SUPABASE_URL_HERE' && SUPABASE_ANON_KEY !== 'YOUR_SUPABASE_ANON_KEY_HERE') {
+  _db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+}
+
+// ——— Application state ———
+let allOpenings   = [];
+let idbDb         = null;
+let userCV        = null;   // { name, type, data: ArrayBuffer }
+let coverTemplate = '';
+
+// ——— Status configuration ———
+const STATUS_LIST = [
+  { value: 'not-applied', label: 'Not Applied',       cssClass: '' },
+  { value: 'applied',     label: 'Applied',            cssClass: 's-applied' },
+  { value: 'interview',   label: 'Interview Offered',  cssClass: 's-interview' },
+  { value: 'completed',   label: 'Completed',          cssClass: 's-completed' },
+  { value: 'rejected',    label: 'Rejected',           cssClass: 's-rejected' },
+];
+
+const PILL_MAP = {
+  'applied':   ['pill-applied',   'Applied'],
+  'interview': ['pill-interview', 'Interview Offered'],
+  'completed': ['pill-completed', 'Completed'],
+  'rejected':  ['pill-rejected',  'Rejected'],
+};
+
+// ============================================================
+//  IndexedDB helpers
+// ============================================================
+
+function initIDB() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open('MiniPupillageDB', 1);
+    req.onupgradeneeded = e => {
+      const db = e.target.result;
+      if (!db.objectStoreNames.contains('files'))     db.createObjectStore('files');
+      if (!db.objectStoreNames.contains('templates')) db.createObjectStore('templates');
+    };
+    req.onsuccess = e => resolve(e.target.result);
+    req.onerror   = () => reject(req.error);
+  });
+}
+
+function idbGet(storeName, key) {
+  return new Promise((resolve, reject) => {
+    const tx  = idbDb.transaction(storeName, 'readonly');
+    const req = tx.objectStore(storeName).get(key);
+    req.onsuccess = () => resolve(req.result);
+    req.onerror   = () => reject(req.error);
+  });
+}
+
+function idbSet(storeName, key, value) {
+  return new Promise((resolve, reject) => {
+    const tx  = idbDb.transaction(storeName, 'readwrite');
+    const req = tx.objectStore(storeName).put(value, key);
+    req.onsuccess = () => resolve();
+    req.onerror   = () => reject(req.error);
+  });
+}
+
+// ============================================================
+//  localStorage helpers — per-user status
+// ============================================================
+
+function getStatus(id) {
+  return localStorage.getItem('status_' + id) || 'not-applied';
+}
+
+function setStatus(id, status) {
+  const prev = getStatus(id);
+  localStorage.setItem('status_' + id, status);
+  // Record applied date when first moving away from not-applied
+  if (status !== 'not-applied' && !localStorage.getItem('applied_date_' + id)) {
+    localStorage.setItem('applied_date_' + id, new Date().toISOString().split('T')[0]);
+  }
+  // Clear applied date if reset to not-applied
+  if (status === 'not-applied') {
+    localStorage.removeItem('applied_date_' + id);
+  }
+}
+
+function getAppliedDate(id) {
+  return localStorage.getItem('applied_date_' + id) || '';
+}
+
+// ============================================================
+//  Date utilities
+// ============================================================
+
+function formatDate(str) {
+  if (!str) return 'Not specified';
+  const d = new Date(str);
+  if (isNaN(d.getTime())) return String(str);
+  return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+}
+
+function deadlineClass(str) {
+  if (!str) return '';
+  const d    = new Date(str);
+  const now  = new Date();
+  const diff = (d - now) / 86400000;
+  if (diff < 0)   return '';
+  if (diff <= 7)  return 'urgent';
+  if (diff <= 30) return 'soon';
+  return 'fresh';
+}
+
+function isThisWeek(str) {
+  if (!str) return false;
+  const d    = new Date(str);
+  const now  = new Date();
+  const diff = (d - now) / 86400000;
+  return diff >= 0 && diff <= 7;
+}
+
+function isThisMonth(str) {
+  if (!str) return false;
+  const d   = new Date(str);
+  const now = new Date();
+  return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
+}
+
+function isFuture(str) {
+  if (!str) return false;
+  const d   = new Date(str);
+  const now = new Date();
+  const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+  return d >= endOfMonth;
+}
+
+// ============================================================
+//  Escape HTML
+// ============================================================
+
+function esc(s) {
+  if (!s) return '';
+  return String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+// ============================================================
+//  Load and render openings
+// ============================================================
+
+async function loadOpenings() {
+  document.getElementById('cards-container').innerHTML =
+    '<div class="loading-state"><div class="spinner"></div><span>Fetching openings from Supabase…</span></div>';
+
+  if (!_db) {
+    document.getElementById('cards-container').innerHTML =
+      '<div class="empty-state"><div class="empty-icon">⚙</div><p>Configure SUPABASE_URL and SUPABASE_ANON_KEY in the CONFIG block.</p></div>';
+    return;
+  }
+
+  const { data, error } = await _db
+    .from('openings')
+    .select('*')
+    .order('deadline', { ascending: true, nullsFirst: false });
+
+  if (error) {
+    console.error('Supabase error:', error);
+    document.getElementById('cards-container').innerHTML =
+      '<div class="empty-state"><div class="empty-icon">⚠</div><p>Failed to load openings.<br>Check your Supabase credentials and table name.</p></div>';
+    return;
+  }
+
+  allOpenings = data || [];
+  document.getElementById('openings-count').textContent = allOpenings.length;
+  populatePracticeFilter();
+  applyFilters();
+}
+
+function populatePracticeFilter() {
+  const seen = new Set();
+  allOpenings.forEach(o => {
+    if (o.practice_areas) {
+      o.practice_areas.split(',').forEach(a => {
+        const t = a.trim();
+        if (t) seen.add(t);
+      });
+    }
+  });
+  const sel = document.getElementById('filter-area');
+  sel.innerHTML = '<option value="">All Areas</option>';
+  [...seen].sort().forEach(a => {
+    const opt = document.createElement('option');
+    opt.value = a;
+    opt.textContent = a;
+    sel.appendChild(opt);
+  });
+}
+
+function applyFilters() {
+  const statusF   = document.getElementById('filter-status').value;
+  const areaF     = document.getElementById('filter-area').value.toLowerCase();
+  const deadlineF = document.getElementById('filter-deadline').value;
+  const searchF   = document.getElementById('filter-search').value.toLowerCase().trim();
+
+  const filtered = allOpenings.filter(o => {
+    const status = getStatus(o.id);
+
+    if (statusF && status !== statusF)          return false;
+    if (areaF && !(o.practice_areas || '').toLowerCase().includes(areaF)) return false;
+
+    if (deadlineF === 'week'   && !isThisWeek(o.deadline))  return false;
+    if (deadlineF === 'month'  && !isThisMonth(o.deadline)) return false;
+    if (deadlineF === 'future' && !isFuture(o.deadline))    return false;
+
+    if (searchF) {
+      const haystack = [o.chambers_name, o.practice_areas, o.location, o.notes]
+        .filter(Boolean).join(' ').toLowerCase();
+      if (!haystack.includes(searchF)) return false;
+    }
+
+    return true;
+  });
+
+  renderCards(filtered);
+  renderMyApplications();
+  document.getElementById('filter-count').textContent =
+    filtered.length + ' of ' + allOpenings.length + ' openings shown';
+}
+
+function clearFilters() {
+  document.getElementById('filter-status').value   = '';
+  document.getElementById('filter-area').value     = '';
+  document.getElementById('filter-deadline').value = '';
+  document.getElementById('filter-search').value   = '';
+  applyFilters();
+}
+
+function renderCards(openings) {
+  const container = document.getElementById('cards-container');
+
+  if (openings.length === 0) {
+    container.innerHTML =
+      '<div class="empty-state"><div class="empty-icon">⚖</div>' +
+      '<p>No openings match the current filters.<br>Try adjusting or clearing the filters above.</p></div>';
+    return;
+  }
+
+  container.innerHTML = openings.map(renderCardHTML).join('');
+
+  // Attach status-change listeners after rendering
+  openings.forEach(o => {
+    const sel = document.getElementById('sel-' + o.id);
+    if (sel) {
+      sel.addEventListener('change', e => {
+        setStatus(o.id, e.target.value);
+        applyStatusClass(sel, e.target.value);
+        renderMyApplications();
+      });
+    }
+  });
+}
+
+function renderCardHTML(o) {
+  const status    = getStatus(o.id);
+  const statusCfg = STATUS_LIST.find(s => s.value === status) || STATUS_LIST[0];
+  const areas     = (o.practice_areas || '').split(',').map(a => a.trim()).filter(Boolean);
+  const dlClass   = deadlineClass(o.deadline);
+  const srcClass  = (o.source === 'auto') ? 'auto' : 'manual';
+  const srcLabel  = (o.source === 'auto') ? 'auto-scraped' : 'manual';
+
+  const cvBtn = userCV
+    ? '<button class="btn btn-ghost btn-sm" onclick="openCVDownloadModal()">↓ CV</button>'
+    : '';
+
+  const websiteSection = o.website
+    ? '<div class="card-link"><a href="' + esc(o.website) + '" target="_blank" rel="noopener noreferrer">Apply / View Opening ↗</a></div>'
+    : '';
+
+  const notesSection = o.notes
+    ? '<div class="card-notes">' + esc(o.notes) + '</div>'
+    : '';
+
+  const tagsHtml = areas.length
+    ? '<div class="tags">' + areas.map(a => '<span class="tag">' + esc(a) + '</span>').join('') + '</div>'
+    : '';
+
+  const locationHtml = o.location
+    ? '<div class="card-location">📍 ' + esc(o.location) + '</div>'
+    : '';
+
+  return [
+    '<div class="card" id="card-' + o.id + '">',
+      '<div class="card-top">',
+        '<div>',
+          '<div class="card-chambers">' + esc(o.chambers_name || 'Unknown Chambers') + '</div>',
+          locationHtml,
+        '</div>',
+        '<span class="card-source ' + srcClass + '">' + srcLabel + '</span>',
+      '</div>',
+      tagsHtml,
+      '<div class="dates-row">',
+        '<div class="date-cell">',
+          '<span class="date-cell-label">Deadline</span>',
+          '<span class="date-cell-value ' + dlClass + '">' + formatDate(o.deadline) + '</span>',
+        '</div>',
+        '<div class="date-cell">',
+          '<span class="date-cell-label">Added</span>',
+          '<span class="date-cell-value">' + formatDate(o.date_added ? o.date_added.substring(0, 10) : null) + '</span>',
+        '</div>',
+      '</div>',
+      notesSection,
+      websiteSection,
+      '<select class="status-select ' + statusCfg.cssClass + '" id="sel-' + o.id + '">',
+        STATUS_LIST.map(s =>
+          '<option value="' + s.value + '"' + (status === s.value ? ' selected' : '') + '>' + s.label + '</option>'
+        ).join(''),
+      '</select>',
+      '<div class="card-actions">',
+        '<button class="btn btn-outline btn-sm" onclick="openCoverLetterModal(\'' + o.id + '\')">✉ Cover Letter</button>',
+        cvBtn,
+      '</div>',
+    '</div>',
+  ].join('');
+}
+
+function applyStatusClass(sel, status) {
+  sel.className = 'status-select';
+  const cfg = STATUS_LIST.find(s => s.value === status);
+  if (cfg && cfg.cssClass) sel.classList.add(cfg.cssClass);
+}
+
+// ============================================================
+//  My Applications section
+// ============================================================
+
+function renderMyApplications() {
+  const active = allOpenings.filter(o => {
+    const s = getStatus(o.id);
+    return ['applied', 'interview', 'completed', 'rejected'].includes(s);
+  });
+
+  document.getElementById('my-apps-count').textContent = active.length;
+  const container = document.getElementById('my-apps-container');
+
+  if (active.length === 0) {
+    container.innerHTML =
+      '<div class="empty-state" style="padding:30px 20px">' +
+      '<div class="empty-icon" style="font-size:30px">📋</div>' +
+      '<p>No applications tracked yet. Change the status on any card above to "Applied" or beyond.</p>' +
+      '</div>';
+    return;
+  }
+
+  const rows = active.map(o => {
+    const s    = getStatus(o.id);
+    const pill = PILL_MAP[s] || ['', s];
+    const ad   = getAppliedDate(o.id);
+    return [
+      '<tr>',
+        '<td><strong>' + esc(o.chambers_name || '—') + '</strong></td>',
+        '<td>' + esc(o.practice_areas || '—') + '</td>',
+        '<td>' + formatDate(o.deadline) + '</td>',
+        '<td><span class="status-pill ' + pill[0] + '">' + pill[1] + '</span></td>',
+        '<td>' + (ad ? formatDate(ad) : '—') + '</td>',
+      '</tr>',
+    ].join('');
+  }).join('');
+
+  container.innerHTML =
+    '<div class="table-wrap"><table class="tracker-table">' +
+    '<thead><tr>' +
+    '<th>Chambers</th><th>Practice Areas</th><th>Deadline</th><th>Status</th><th>Date Applied</th>' +
+    '</tr></thead><tbody>' + rows + '</tbody></table></div>';
+}
+
+// ============================================================
+//  Cover letter modal
+// ============================================================
+
+function openCoverLetterModal(openingId) {
+  const o = allOpenings.find(x => x.id === openingId);
+  if (!o) return;
+
+  const today   = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+  const area    = (o.practice_areas || '').split(',')[0].trim() || 'General Practice';
+  const baseLetterFallback =
+    'Dear Sir or Madam,\n\nI am writing to apply for a mini-pupillage at [CHAMBERS_NAME].\n\nYours faithfully,';
+
+  let letter = (coverTemplate || baseLetterFallback)
+    .replace(/\[CHAMBERS_NAME\]/g, o.chambers_name || '')
+    .replace(/\[PRACTICE_AREA\]/g,  area)
+    .replace(/\[DEADLINE\]/g,        formatDate(o.deadline))
+    .replace(/\[DATE_TODAY\]/g,      today);
+
+  document.getElementById('cl-modal-title').textContent = 'Cover Letter — ' + (o.chambers_name || 'Chambers');
+  document.getElementById('cl-textarea').value = letter;
+  document.getElementById('cl-modal').setAttribute('data-opening-id', openingId);
+  openModal('cl-modal');
+}
+
+async function downloadCoverLetter(format) {
+  const text     = document.getElementById('cl-textarea').value;
+  const oid      = document.getElementById('cl-modal').getAttribute('data-opening-id');
+  const o        = allOpenings.find(x => x.id === oid);
+  const rawName  = o ? o.chambers_name : 'Chambers';
+  const safeName = rawName.replace(/[^a-zA-Z0-9 ]/g, '').trim().replace(/\s+/g, '_');
+  const base     = 'CoverLetter_' + safeName;
+
+  if (format === 'txt') {
+    triggerDownload(new Blob([text], { type: 'text/plain;charset=utf-8' }), base + '.txt');
+  } else if (format === 'docx') {
+    await generateDocxFromText(text, base + '.docx');
+  } else if (format === 'pdf') {
+    generatePDFFromText(text, base + '.pdf', 'Cover Letter — ' + rawName);
+  }
+}
+
+// ============================================================
+//  CV upload and download
+// ============================================================
+
+async function handleCVUpload(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = async ev => {
+    const cvData = { name: file.name, type: file.type, data: ev.target.result };
+    try {
+      if (idbDb) await idbSet('files', 'cv', cvData);
+      userCV = cvData;
+      renderCVPanel();
+      showToast('CV saved to your browser.', 'success');
+      applyFilters(); // Re-render cards to show CV button
+    } catch (err) {
+      console.error('IDB save error:', err);
+      showToast('Could not save CV to browser storage.', 'error');
+    }
+  };
+  reader.readAsArrayBuffer(file);
+  e.target.value = ''; // Reset input
+}
+
+async function loadCV() {
+  if (!idbDb) return;
+  try {
+    const cv = await idbGet('files', 'cv');
+    if (cv) userCV = cv;
+  } catch (e) {
+    console.warn('Could not load CV from IDB:', e);
+  }
+}
+
+function renderCVPanel() {
+  const infoEl   = document.getElementById('cv-info');
+  const btnsEl   = document.getElementById('cv-buttons');
+
+  if (userCV) {
+    infoEl.innerHTML =
+      '<div class="cv-icon">📄</div>' +
+      '<div><div class="cv-name">' + esc(userCV.name) + '</div>' +
+      '<div class="cv-sub">Stored locally in this browser — not uploaded anywhere</div></div>';
+    btnsEl.innerHTML =
+      '<button class="btn btn-outline btn-sm" onclick="openCVDownloadModal()">↓ Download CV</button>' +
+      '<button class="btn btn-ghost btn-sm" onclick="document.getElementById(\'cv-upload-input\').click()">Replace</button>';
+  } else {
+    infoEl.innerHTML =
+      '<div class="cv-icon">📄</div>' +
+      '<div><div class="cv-name" style="color:var(--text-muted)">No CV uploaded</div>' +
+      '<div class="cv-sub">Upload once and access it on any card</div></div>';
+    btnsEl.innerHTML =
+      '<button class="btn btn-gold btn-sm" onclick="document.getElementById(\'cv-upload-input\').click()">↑ Upload CV</button>';
+  }
+}
+
+function openCVDownloadModal() {
+  openModal('cv-modal');
+}
+
+async function downloadCV(format) {
+  if (!userCV) { showToast('No CV uploaded.', 'error'); return; }
+
+  const rawName  = userCV.name.replace(/\.[^.]+$/, '');
+  const safeName = rawName.replace(/[^a-zA-Z0-9 ]/g, '').trim().replace(/\s+/g, '_');
+  const base     = 'CV_' + safeName;
+  const ab       = userCV.data;
+  const type     = userCV.type || '';
+
+  if (format === 'txt') {
+    const text = await extractTextFromCV(userCV);
+    triggerDownload(new Blob([text], { type: 'text/plain;charset=utf-8' }), base + '.txt');
+  } else if (format === 'docx') {
+    if (type.includes('wordprocessingml') || type.includes('msword') || userCV.name.match(/\.docx?$/i)) {
+      // Serve original DOCX
+      triggerDownload(new Blob([ab], { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' }), base + '.docx');
+    } else {
+      const text = await extractTextFromCV(userCV);
+      await generateDocxFromText(text, base + '.docx');
+    }
+  } else if (format === 'pdf') {
+    if (type === 'application/pdf' || userCV.name.match(/\.pdf$/i)) {
+      // Serve original PDF
+      triggerDownload(new Blob([ab], { type: 'application/pdf' }), base + '.pdf');
+    } else {
+      const text = await extractTextFromCV(userCV);
+      generatePDFFromText(text, base + '.pdf', 'Curriculum Vitae');
+    }
+  }
+}
+
+async function extractTextFromCV(cv) {
+  const type = cv.type || '';
+  const ab   = cv.data;
+
+  // DOCX: extract from word/document.xml using JSZip
+  if (type.includes('wordprocessingml') || cv.name.match(/\.docx$/i)) {
+    if (typeof JSZip !== 'undefined') {
+      try {
+        const zip = await JSZip.loadAsync(ab);
+        const xmlFile = zip.file('word/document.xml');
+        if (xmlFile) {
+          const xml = await xmlFile.async('string');
+          const text = xml
+            .replace(/<w:br[^>]*\/?>/gi,  '\n')
+            .replace(/<\/w:p>/gi,          '\n')
+            .replace(/<\/w:tr>/gi,         '\n')
+            .replace(/<\/w:tc>/gi,         '\t')
+            .replace(/<[^>]+>/g,           ' ')
+            .replace(/&amp;/g,  '&')
+            .replace(/&lt;/g,   '<')
+            .replace(/&gt;/g,   '>')
+            .replace(/&quot;/g, '"')
+            .replace(/&#39;/g,  "'")
+            .replace(/&apos;/g, "'")
+            .replace(/[ \t]{2,}/g, ' ')
+            .replace(/\n{3,}/g,    '\n\n')
+            .trim();
+          return text || '[No text found in DOCX]';
+        }
+      } catch (e) {
+        console.warn('DOCX text extraction failed:', e);
+      }
+    }
+    return '[DOCX text extraction unavailable. Please use the DOCX download instead.]';
+  }
+
+  // PDF: cannot parse without a heavy library; note that and return placeholder
+  if (type === 'application/pdf' || cv.name.match(/\.pdf$/i)) {
+    return '[PDF text cannot be extracted in this viewer. Use the PDF download button to access the original file.]';
+  }
+
+  // Plain text / RTF / unknown: attempt UTF-8 decode
+  try {
+    return new TextDecoder('utf-8').decode(ab);
+  } catch (e) {
+    return '[Could not read file as text]';
+  }
+}
+
+// ============================================================
+//  Add opening modal
+// ============================================================
+
+function openAddModal() {
+  document.getElementById('add-form').reset();
+  openModal('add-modal');
+}
+
+async function submitAddOpening(e) {
+  e.preventDefault();
+  if (!_db) { showToast('Supabase not configured.', 'error'); return; }
+
+  const form = e.target;
+  const btn  = document.getElementById('add-submit-btn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner" style="width:14px;height:14px;border-width:2px"></span> Adding…';
+
+  const entry = {
+    chambers_name:  (form.chambers.value || '').trim(),
+    website:        (form.website.value  || '').trim() || null,
+    deadline:        form.deadline.value || null,
+    practice_areas: (form.practice_areas.value || '').trim() || null,
+    location:       (form.location.value || '').trim() || null,
+    notes:          (form.notes.value    || '').trim() || null,
+    source:         'manual',
+  };
+
+  if (!entry.chambers_name) {
+    showToast('Please enter a chambers name.', 'error');
+    btn.disabled = false;
+    btn.textContent = 'Add Opening';
+    return;
+  }
+
+  const { error } = await _db.from('openings').insert(entry);
+
+  btn.disabled = false;
+  btn.textContent = 'Add Opening';
+
+  if (error) {
+    console.error('Insert error:', error);
+    showToast('Failed to add opening: ' + error.message, 'error');
+    return;
+  }
+
+  closeModal('add-modal');
+  showToast('Opening added and shared with all users.', 'success');
+  await loadOpenings();
+}
+
+// ============================================================
+//  Cover letter template
+// ============================================================
+
+async function loadCoverTemplate() {
+  if (!idbDb) return;
+  try {
+    const t = await idbGet('templates', 'coverLetter');
+    if (t) {
+      coverTemplate = t;
+      document.getElementById('template-textarea').value = t;
+    }
+  } catch (e) {
+    console.warn('Could not load template:', e);
+  }
+}
+
+async function saveTemplate() {
+  const text = document.getElementById('template-textarea').value;
+  coverTemplate = text;
+  if (idbDb) {
+    try {
+      await idbSet('templates', 'coverLetter', text);
+      showToast('Template saved to your browser.', 'success');
+    } catch (e) {
+      showToast('Could not save template.', 'error');
+    }
+  } else {
+    // Fallback to memory only
+    showToast('Template saved for this session.', 'success');
+  }
+}
+
+// ============================================================
+//  Visitor logging
+// ============================================================
+
+async function logVisit() {
+  if (!_db) return;
+  try {
+    let ip = 'unknown';
+    let country = 'unknown';
+    try {
+      const res  = await fetch('https://ipapi.co/json/', { signal: AbortSignal.timeout(5000) });
+      const data = await res.json();
+      ip      = data.ip            || 'unknown';
+      country = data.country_name  || data.country || 'unknown';
+    } catch (ipErr) {
+      console.warn('IP lookup failed:', ipErr);
+    }
+    await _db.from('visits').insert({
+      ip:         ip,
+      country:    country,
+      user_agent: navigator.userAgent,
+    });
+  } catch (e) {
+    console.warn('Could not log visit:', e);
+  }
+}
+
+async function loadVisitorLog() {
+  const tbody = document.getElementById('visitor-log-body');
+  if (!_db) {
+    tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--text-muted)">Supabase not configured.</td></tr>';
+    return;
+  }
+
+  const { data, error } = await _db
+    .from('visits')
+    .select('ip, country, timestamp, user_agent')
+    .order('timestamp', { ascending: false })
+    .limit(50);
+
+  if (error || !data) {
+    tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--text-muted)">Could not load visitor log.</td></tr>';
+    return;
+  }
+
+  if (data.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--text-muted)">No visits recorded yet.</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = data.map(v => {
+    const ts  = v.timestamp ? new Date(v.timestamp).toLocaleString('en-GB') : '—';
+    const ua  = v.user_agent || '—';
+    const uaShort = ua.length > 65 ? ua.substring(0, 65) + '…' : ua;
+    return [
+      '<tr>',
+        '<td>' + esc(v.ip || '—') + '</td>',
+        '<td class="country">' + esc(v.country || '—') + '</td>',
+        '<td>' + esc(ts) + '</td>',
+        '<td title="' + esc(ua) + '" style="max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + esc(uaShort) + '</td>',
+      '</tr>',
+    ].join('');
+  }).join('');
+}
+
+// ============================================================
+//  CSV export
+// ============================================================
+
+function exportCSV() {
+  if (allOpenings.length === 0) { showToast('No openings to export.', 'error'); return; }
+
+  const headers = ['Chambers', 'Website', 'Deadline', 'Practice Areas', 'Location', 'Notes', 'Date Added', 'Source', 'My Status', 'Date Applied'];
+  const rows = allOpenings.map(o => [
+    o.chambers_name  || '',
+    o.website        || '',
+    o.deadline       || '',
+    o.practice_areas || '',
+    o.location       || '',
+    o.notes          || '',
+    o.date_added     || '',
+    o.source         || '',
+    getStatus(o.id),
+    getAppliedDate(o.id),
+  ].map(v => '"' + String(v).replace(/"/g, '""') + '"'));
+
+  const csv  = [headers.map(h => '"' + h + '"').join(','), ...rows.map(r => r.join(','))].join('\r\n');
+  const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+  triggerDownload(blob, 'MiniPupillages_' + new Date().toISOString().split('T')[0] + '.csv');
+}
+
+// ============================================================
+//  Download helpers
+// ============================================================
+
+function triggerDownload(blob, filename) {
+  const url = URL.createObjectURL(blob);
+  const a   = document.createElement('a');
+  a.href     = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+async function generateDocxFromText(text, filename) {
+  if (typeof window.docx === 'undefined') {
+    showToast('DOCX library not loaded. Check your internet connection.', 'error');
+    return;
+  }
+  try {
+    const { Document, Paragraph, TextRun, Packer, AlignmentType } = window.docx;
+
+    const paragraphs = text.split('\n').map(line =>
+      new Paragraph({
+        children: [new TextRun({ text: line, size: 24, font: 'Times New Roman' })],
+        spacing:  { after: 160 },
+      })
+    );
+
+    const doc  = new Document({ sections: [{ properties: {}, children: paragraphs }] });
+    const blob = await Packer.toBlob(doc);
+    triggerDownload(blob, filename);
+  } catch (e) {
+    console.error('DOCX generation error:', e);
+    showToast('DOCX generation failed. Try the TXT download instead.', 'error');
+  }
+}
+
+function generatePDFFromText(text, filename, title) {
+  if (!window.jspdf || !window.jspdf.jsPDF) {
+    showToast('PDF library not loaded. Check your internet connection.', 'error');
+    return;
+  }
+  try {
+    const { jsPDF } = window.jspdf;
+    const doc       = new jsPDF({ unit: 'mm', format: 'a4' });
+
+    const marginL  = 20;
+    const marginR  = 20;
+    const marginT  = 22;
+    const marginB  = 22;
+    const pageW    = doc.internal.pageSize.getWidth();
+    const pageH    = doc.internal.pageSize.getHeight();
+    const maxWidth = pageW - marginL - marginR;
+    const lineH    = 6.5;
+    let   y        = marginT;
+
+    if (title) {
+      doc.setFont('times', 'bold');
+      doc.setFontSize(13);
+      const titleLines = doc.splitTextToSize(title, maxWidth);
+      titleLines.forEach(line => {
+        doc.text(line, marginL, y);
+        y += lineH;
+      });
+      y += 4;
+      doc.setFont('times', 'normal');
+    }
+
+    doc.setFontSize(11);
+
+    const paras = text.split('\n');
+    paras.forEach(para => {
+      if (para.trim() === '') {
+        y += lineH * 0.55;
+        if (y > pageH - marginB) { doc.addPage(); y = marginT; }
+        return;
+      }
+      const lines = doc.splitTextToSize(para, maxWidth);
+      lines.forEach(line => {
+        if (y + lineH > pageH - marginB) { doc.addPage(); y = marginT; }
+        doc.text(line, marginL, y);
+        y += lineH;
+      });
+    });
+
+    doc.save(filename);
+  } catch (e) {
+    console.error('PDF generation error:', e);
+    showToast('PDF generation failed. Try the TXT download instead.', 'error');
+  }
+}
+
+// ============================================================
+//  Modal helpers
+// ============================================================
+
+function openModal(id) {
+  document.getElementById(id).classList.add('active');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeModal(id) {
+  document.getElementById(id).classList.remove('active');
+  document.body.style.overflow = '';
+}
+
+function handleOverlayClick(e, id) {
+  if (e.target === document.getElementById(id)) closeModal(id);
+}
+
+// ============================================================
+//  Toast notification
+// ============================================================
+
+let toastTimer = null;
+
+function showToast(msg, type) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className   = 'toast visible' + (type ? ' t-' + type : '');
+  if (toastTimer) clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { el.classList.remove('visible'); }, 3600);
+}
+
+// ============================================================
+//  Template panel toggle
+// ============================================================
+
+function initTemplatePanel() {
+  const toggle  = document.getElementById('template-toggle');
+  const body    = document.getElementById('template-body');
+  const chevron = document.getElementById('template-chevron');
+
+  toggle.addEventListener('click', () => {
+    const isOpen = body.classList.toggle('open');
+    chevron.classList.toggle('open', isOpen);
+    toggle.setAttribute('aria-expanded', isOpen);
+  });
+
+  toggle.addEventListener('keydown', e => {
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle.click(); }
+  });
+}
+
+// ============================================================
+//  Keyboard escape to close modals
+// ============================================================
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    document.querySelectorAll('.modal-overlay.active').forEach(m => {
+      m.classList.remove('active');
+      document.body.style.overflow = '';
+    });
+  }
+});
+
+// ============================================================
+//  Init
+// ============================================================
+
+async function init() {
+  // Check config
+  if (SUPABASE_URL === 'YOUR_SUPABASE_URL_HERE' || SUPABASE_ANON_KEY === 'YOUR_SUPABASE_ANON_KEY_HERE') {
+    document.getElementById('config-banner').style.display = 'block';
+  }
+
+  // Template panel toggle
+  initTemplatePanel();
+
+  // IndexedDB
+  try {
+    idbDb = await initIDB();
+  } catch (e) {
+    console.warn('IndexedDB not available:', e);
+  }
+
+  // Load user data from IDB
+  await Promise.all([loadCV(), loadCoverTemplate()]);
+  renderCVPanel();
+
+  // Event listeners
+  document.getElementById('filter-search').addEventListener('input',    applyFilters);
+  document.getElementById('filter-status').addEventListener('change',   applyFilters);
+  document.getElementById('filter-area').addEventListener('change',     applyFilters);
+  document.getElementById('filter-deadline').addEventListener('change', applyFilters);
+  document.getElementById('add-form').addEventListener('submit',        submitAddOpening);
+  document.getElementById('cv-upload-input').addEventListener('change', handleCVUpload);
+  document.getElementById('template-save-btn').addEventListener('click', saveTemplate);
+
+  // Fetch openings from Supabase
+  await loadOpenings();
+
+  // Log this visit and load visitor log (non-blocking)
+  logVisit().then(() => loadVisitorLog());
+}
+
+document.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>
