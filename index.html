@@ -155,6 +155,7 @@ body {
   color: var(--text-muted);
 }
 .btn-ghost:hover:not(:disabled) { background: rgba(255,255,255,0.04); color: var(--text); }
+.btn-ghost.btn-active { background: rgba(201,168,76,0.12); border-color: var(--gold-dim); color: var(--gold); }
 
 .btn-danger-soft {
   background: rgba(217,64,64,0.12);
@@ -999,6 +1000,7 @@ Yours faithfully,
       <div class="filter-label">Your Status</div>
       <select id="filter-status">
         <option value="">All Statuses</option>
+        <option value="any-applied">Applied (Any Stage)</option>
         <option value="not-applied">Not Applied</option>
         <option value="applied">Applied</option>
         <option value="interview">Interview Offered</option>
@@ -1032,6 +1034,7 @@ Yours faithfully,
     <h2>All Openings</h2>
     <span class="badge" id="openings-count">0</span>
     <span class="sub">sorted by deadline</span>
+    <button class="btn btn-ghost btn-sm" id="past-deadlines-btn" onclick="togglePastDeadlines()" style="margin-left:auto">Show Past Deadlines</button>
   </div>
 
   <!-- ——— Cards grid ——— -->
@@ -1183,8 +1186,8 @@ Yours faithfully,
  *  CONFIG — replace these two values before deploying
  *  Do not commit real credentials to a public repository.
  * ============================================================ */
-const SUPABASE_URL      = 'https://kpudotemarnkakftkmvt.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtwdWRvdGVtYXJua2FrZnRrbXZ0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY5NDExNzcsImV4cCI6MjA5MjUxNzE3N30.ZGvJ9c4sMLQOJKbsRQGZVgWEDJnimdeod-_y991Q4RY';
+const SUPABASE_URL      = 'YOUR_SUPABASE_URL_HERE';
+const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY_HERE';
 /* ============================================================ */
 
 // ——— Supabase client ———
@@ -1194,10 +1197,11 @@ if (SUPABASE_URL !== 'YOUR_SUPABASE_URL_HERE' && SUPABASE_ANON_KEY !== 'YOUR_SUP
 }
 
 // ——— Application state ———
-let allOpenings   = [];
-let idbDb         = null;
-let userCV        = null;   // { name, type, data: ArrayBuffer }
-let coverTemplate = '';
+let allOpenings      = [];
+let idbDb            = null;
+let userCV           = null;   // { name, type, data: ArrayBuffer }
+let coverTemplate    = '';
+let showPastDeadlines = false;
 
 // ——— Status configuration ———
 const STATUS_LIST = [
@@ -1320,6 +1324,27 @@ function isFuture(str) {
   return d >= endOfMonth;
 }
 
+function isPastDeadline(str) {
+  if (!str) return false; // null deadline is never considered past
+  const d   = new Date(str);
+  const now = new Date();
+  now.setHours(0, 0, 0, 0);
+  return d < now;
+}
+
+function togglePastDeadlines() {
+  showPastDeadlines = !showPastDeadlines;
+  const btn = document.getElementById('past-deadlines-btn');
+  if (showPastDeadlines) {
+    btn.textContent = 'Hide Past Deadlines';
+    btn.classList.add('btn-active');
+  } else {
+    btn.textContent = 'Show Past Deadlines';
+    btn.classList.remove('btn-active');
+  }
+  applyFilters();
+}
+
 // ============================================================
 //  Escape HTML
 // ============================================================
@@ -1392,10 +1417,21 @@ function applyFilters() {
   const deadlineF = document.getElementById('filter-deadline').value;
   const searchF   = document.getElementById('filter-search').value.toLowerCase().trim();
 
+  const APPLIED_STATUSES = ['applied', 'interview', 'completed', 'rejected'];
+
   const filtered = allOpenings.filter(o => {
     const status = getStatus(o.id);
 
-    if (statusF && status !== statusF)          return false;
+    // Past deadline filter — hide by default unless toggle is on
+    if (!showPastDeadlines && isPastDeadline(o.deadline)) return false;
+
+    // Status filter
+    if (statusF === 'any-applied') {
+      if (!APPLIED_STATUSES.includes(status)) return false;
+    } else if (statusF && status !== statusF) {
+      return false;
+    }
+
     if (areaF && !(o.practice_areas || '').toLowerCase().includes(areaF)) return false;
 
     if (deadlineF === 'week'   && !isThisWeek(o.deadline))  return false;
@@ -1411,10 +1447,15 @@ function applyFilters() {
     return true;
   });
 
+  const pastCount = allOpenings.filter(o => isPastDeadline(o.deadline)).length;
+  const hiddenNote = (!showPastDeadlines && pastCount > 0)
+    ? ' · ' + pastCount + ' past hidden'
+    : '';
+
   renderCards(filtered);
   renderMyApplications();
   document.getElementById('filter-count').textContent =
-    filtered.length + ' of ' + allOpenings.length + ' openings shown';
+    filtered.length + ' of ' + allOpenings.length + ' openings shown' + hiddenNote;
 }
 
 function clearFilters() {
@@ -1422,6 +1463,12 @@ function clearFilters() {
   document.getElementById('filter-area').value     = '';
   document.getElementById('filter-deadline').value = '';
   document.getElementById('filter-search').value   = '';
+  if (showPastDeadlines) {
+    showPastDeadlines = false;
+    const btn = document.getElementById('past-deadlines-btn');
+    btn.textContent = 'Show Past Deadlines';
+    btn.classList.remove('btn-active');
+  }
   applyFilters();
 }
 
@@ -2087,7 +2134,7 @@ document.addEventListener('keydown', e => {
 
 async function init() {
   // Check config
-  if (SUPABASE_URL === 'YOUR_SUPABASE_URL_HERE' || SUPABASE_ANON_KEY === 'YOUR_SUPABASE_ANON_KEY_HERE') {
+  if (SUPABASE_URL === 'https://kpudotemarnkakftkmvt.supabase.co' || SUPABASE_ANON_KEY === 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtwdWRvdGVtYXJua2FrZnRrbXZ0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY5NDExNzcsImV4cCI6MjA5MjUxNzE3N30.ZGvJ9c4sMLQOJKbsRQGZVgWEDJnimdeod-_y991Q4RY') {
     document.getElementById('config-banner').style.display = 'block';
   }
 
