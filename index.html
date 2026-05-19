@@ -1186,8 +1186,8 @@ Yours faithfully,
  *  CONFIG — replace these two values before deploying
  *  Do not commit real credentials to a public repository.
  * ============================================================ */
-const SUPABASE_URL      = 'YOUR_SUPABASE_URL_HERE';
-const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY_HERE';
+const SUPABASE_URL      = 'https://kpudotemarnkakftkmvt.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtwdWRvdGVtYXJua2FrZnRrbXZ0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY5NDExNzcsImV4cCI6MjA5MjUxNzE3N30.ZGvJ9c4sMLQOJKbsRQGZVgWEDJnimdeod-_y991Q4RY';
 /* ============================================================ */
 
 // ——— Supabase client ———
@@ -2134,7 +2134,7 @@ document.addEventListener('keydown', e => {
 
 async function init() {
   // Check config
-  if (SUPABASE_URL === 'https://kpudotemarnkakftkmvt.supabase.co' || SUPABASE_ANON_KEY === 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtwdWRvdGVtYXJua2FrZnRrbXZ0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY5NDExNzcsImV4cCI6MjA5MjUxNzE3N30.ZGvJ9c4sMLQOJKbsRQGZVgWEDJnimdeod-_y991Q4RY') {
+  if (SUPABASE_URL === 'YOUR_SUPABASE_URL_HERE' || SUPABASE_ANON_KEY === 'YOUR_SUPABASE_ANON_KEY_HERE') {
     document.getElementById('config-banner').style.display = 'block';
   }
 
