@@ -1023,6 +1023,17 @@ Yours faithfully,
         <option value="future">Future (beyond this month)</option>
       </select>
     </div>
+    <div class="filter-group">
+      <div class="filter-label">Sort By</div>
+      <select id="filter-sort">
+        <option value="deadline-asc">Deadline (soonest first)</option>
+        <option value="deadline-desc">Deadline (latest first)</option>
+        <option value="name-asc">Chambers Name (A to Z)</option>
+        <option value="name-desc">Chambers Name (Z to A)</option>
+        <option value="added-desc">Date Added (newest first)</option>
+        <option value="added-asc">Date Added (oldest first)</option>
+      </select>
+    </div>
     <div class="filter-count-wrap">
       <span id="filter-count" style="font-size:0.76rem;color:var(--text-muted);font-style:italic">—</span>
       <button class="btn btn-ghost btn-xs" onclick="clearFilters()">Clear</button>
@@ -1033,7 +1044,6 @@ Yours faithfully,
   <div class="section-head" style="margin-bottom:16px">
     <h2>All Openings</h2>
     <span class="badge" id="openings-count">0</span>
-    <span class="sub">sorted by deadline</span>
     <button class="btn btn-ghost btn-sm" id="past-deadlines-btn" onclick="togglePastDeadlines()" style="margin-left:auto">Show Past Deadlines</button>
   </div>
 
@@ -1173,6 +1183,53 @@ Yours faithfully,
 
 
 <!-- ============================================================
+  Modal: Edit Opening
+============================================================ -->
+<div class="modal-overlay" id="edit-modal" onclick="handleOverlayClick(event, 'edit-modal')">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('edit-modal')" aria-label="Close">✕</button>
+    <h2>Edit Opening</h2>
+    <p class="modal-sub">Changes are saved to Supabase immediately and will be visible to all users.</p>
+    <form id="edit-form">
+      <input type="hidden" name="id">
+      <div class="form-group">
+        <label>Chambers Name *</label>
+        <input type="text" name="chambers" required placeholder="e.g. Doughty Street Chambers">
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Website / Application URL</label>
+          <input type="url" name="website" placeholder="https://…">
+        </div>
+        <div class="form-group">
+          <label>Application Deadline</label>
+          <input type="date" name="deadline">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Practice Areas</label>
+          <input type="text" name="practice_areas" placeholder="e.g. Criminal, Family">
+        </div>
+        <div class="form-group">
+          <label>Location</label>
+          <input type="text" name="location" placeholder="e.g. Temple, London EC4">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Notes</label>
+        <textarea name="notes" placeholder="Any additional details about this opening…"></textarea>
+      </div>
+      <div class="form-footer">
+        <button type="button" class="btn btn-ghost" onclick="closeModal('edit-modal')">Cancel</button>
+        <button type="submit" class="btn btn-gold" id="edit-submit-btn">Save Changes</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+
+<!-- ============================================================
   Toast notification
 ============================================================ -->
 <div class="toast" id="toast"></div>
@@ -1186,7 +1243,7 @@ Yours faithfully,
  *  CONFIG — replace these two values before deploying
  *  Do not commit real credentials to a public repository.
  * ============================================================ */
-const SUPABASE_URL      = 'https://kpudotemarnkakftkmvt.supabase.co';
+const SUPABASE_URL      = 'https://kpudotemarnkakftkmvt.supabase.co/';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtwdWRvdGVtYXJua2FrZnRrbXZ0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY5NDExNzcsImV4cCI6MjA5MjUxNzE3N30.ZGvJ9c4sMLQOJKbsRQGZVgWEDJnimdeod-_y991Q4RY';
 /* ============================================================ */
 
@@ -1452,6 +1509,35 @@ function applyFilters() {
     ? ' · ' + pastCount + ' past hidden'
     : '';
 
+  // Sort
+  const sortV = document.getElementById('filter-sort').value;
+  filtered.sort((a, b) => {
+    switch (sortV) {
+      case 'deadline-asc': {
+        if (!a.deadline && !b.deadline) return 0;
+        if (!a.deadline) return 1;
+        if (!b.deadline) return -1;
+        return a.deadline < b.deadline ? -1 : a.deadline > b.deadline ? 1 : 0;
+      }
+      case 'deadline-desc': {
+        if (!a.deadline && !b.deadline) return 0;
+        if (!a.deadline) return 1;
+        if (!b.deadline) return -1;
+        return a.deadline > b.deadline ? -1 : a.deadline < b.deadline ? 1 : 0;
+      }
+      case 'name-asc':
+        return (a.chambers_name || '').localeCompare(b.chambers_name || '');
+      case 'name-desc':
+        return (b.chambers_name || '').localeCompare(a.chambers_name || '');
+      case 'added-desc':
+        return (b.date_added || '') > (a.date_added || '') ? 1 : -1;
+      case 'added-asc':
+        return (a.date_added || '') > (b.date_added || '') ? 1 : -1;
+      default:
+        return 0;
+    }
+  });
+
   renderCards(filtered);
   renderMyApplications();
   document.getElementById('filter-count').textContent =
@@ -1463,6 +1549,7 @@ function clearFilters() {
   document.getElementById('filter-area').value     = '';
   document.getElementById('filter-deadline').value = '';
   document.getElementById('filter-search').value   = '';
+  document.getElementById('filter-sort').value     = 'deadline-asc';
   if (showPastDeadlines) {
     showPastDeadlines = false;
     const btn = document.getElementById('past-deadlines-btn');
@@ -1538,7 +1625,11 @@ function renderCardHTML(o) {
       '<div class="dates-row">',
         '<div class="date-cell">',
           '<span class="date-cell-label">Deadline</span>',
-          '<span class="date-cell-value ' + dlClass + '">' + formatDate(o.deadline) + '</span>',
+          (o.deadline
+            ? '<span class="date-cell-value ' + dlClass + '">' + formatDate(o.deadline) + '</span>'
+            : (o.website
+                ? '<a href="' + esc(o.website) + '" target="_blank" rel="noopener noreferrer" style="font-size:0.78rem;color:var(--text-muted);text-decoration:none;border-bottom:1px dashed var(--border-mid)">Unknown — visit website ↗</a>'
+                : '<span class="date-cell-value">Not specified</span>')),
         '</div>',
         '<div class="date-cell">',
           '<span class="date-cell-label">Added</span>',
@@ -1554,6 +1645,7 @@ function renderCardHTML(o) {
       '</select>',
       '<div class="card-actions">',
         '<button class="btn btn-outline btn-sm" onclick="openCoverLetterModal(\'' + o.id + '\')">✉ Cover Letter</button>',
+        '<button class="btn btn-ghost btn-sm" onclick="openEditModal(\'' + o.id + '\')">✎ Edit</button>',
         cvBtn,
       '</div>',
     '</div>',
@@ -1843,6 +1935,154 @@ async function submitAddOpening(e) {
   closeModal('add-modal');
   showToast('Opening added and shared with all users.', 'success');
   await loadOpenings();
+}
+
+// ============================================================
+//  Edit opening modal
+// ============================================================
+
+function openEditModal(openingId) {
+  const o = allOpenings.find(x => x.id === openingId);
+  if (!o) return;
+  const form = document.getElementById('edit-form');
+  form.elements['id'].value             = o.id;
+  form.elements['chambers'].value       = o.chambers_name   || '';
+  form.elements['website'].value        = o.website         || '';
+  form.elements['deadline'].value       = o.deadline        || '';
+  form.elements['practice_areas'].value = o.practice_areas  || '';
+  form.elements['location'].value       = o.location        || '';
+  form.elements['notes'].value          = o.notes           || '';
+  openModal('edit-modal');
+}
+
+async function submitEditOpening(e) {
+  e.preventDefault();
+  if (!_db) { showToast('Supabase not configured.', 'error'); return; }
+
+  const form = e.target;
+  const id   = form.elements['id'].value;
+  const btn  = document.getElementById('edit-submit-btn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner" style="width:14px;height:14px;border-width:2px"></span> Saving…';
+
+  const updates = {
+    chambers_name:  (form.elements['chambers'].value       || '').trim(),
+    website:        (form.elements['website'].value        || '').trim() || null,
+    deadline:        form.elements['deadline'].value        || null,
+    practice_areas: (form.elements['practice_areas'].value || '').trim() || null,
+    location:       (form.elements['location'].value       || '').trim() || null,
+    notes:          (form.elements['notes'].value          || '').trim() || null,
+  };
+
+  if (!updates.chambers_name) {
+    showToast('Please enter a chambers name.', 'error');
+    btn.disabled = false;
+    btn.textContent = 'Save Changes';
+    return;
+  }
+
+  const { error } = await _db.from('openings').update(updates).eq('id', id);
+
+  btn.disabled = false;
+  btn.textContent = 'Save Changes';
+
+  if (error) {
+    console.error('Update error:', error);
+    showToast('Failed to save changes: ' + error.message, 'error');
+    return;
+  }
+
+  // Patch in-memory record so the UI updates without a full reload
+  const idx = allOpenings.findIndex(x => x.id === id);
+  if (idx !== -1) Object.assign(allOpenings[idx], updates);
+
+  closeModal('edit-modal');
+  showToast('Opening updated successfully.', 'success');
+  document.getElementById('openings-count').textContent = allOpenings.length;
+  populatePracticeFilter();
+  applyFilters();
+}
+
+// ============================================================
+//  Auto-fill missing deadlines from chambers websites
+// ============================================================
+
+function extractDeadlineFromText(text) {
+  const months = 'January|February|March|April|May|June|July|August|September|October|November|December';
+  const ordinal = '(?:st|nd|rd|th)?';
+  const kw = '(?:deadline|closing date|applications?\s+close[sd]?|apply by|closes?\s+on|closed?\s+on|application deadline|applications\s+by)[^.\n]{0,120}?';
+
+  const patterns = [
+    // "15 January 2025" / "15th January 2025"
+    new RegExp(kw + '(\\d{1,2}' + ordinal + '\\s+(?:' + months + ')\\s+\\d{4})', 'i'),
+    // "January 15, 2025" / "January 15 2025"
+    new RegExp(kw + '((?:' + months + ')\\s+\\d{1,2}' + ordinal + ',?\\s+\\d{4})', 'i'),
+    // ISO: "2025-01-15"
+    new RegExp(kw + '(\\d{4}-\\d{2}-\\d{2})', 'i'),
+    // DD/MM/YYYY
+    new RegExp(kw + '(\\d{1,2}\\/\\d{1,2}\\/\\d{4})', 'i'),
+  ];
+
+  for (const pat of patterns) {
+    const m = text.match(pat);
+    if (m && m[1]) {
+      const raw = m[1].replace(/(?:st|nd|rd|th)/i, '').trim();
+      const d = new Date(raw);
+      if (!isNaN(d.getTime())) {
+        return d.toISOString().split('T')[0];
+      }
+    }
+  }
+  return null;
+}
+
+async function autoFillDeadlines() {
+  if (!_db) return;
+  const missing = allOpenings.filter(o => !o.deadline && o.website);
+  if (missing.length === 0) return;
+
+  for (const o of missing) {
+    try {
+      const proxyUrl = 'https://api.allorigins.win/get?url=' + encodeURIComponent(o.website);
+      const res = await fetch(proxyUrl, { signal: AbortSignal.timeout(14000) });
+      if (!res.ok) continue;
+      const json = await res.json();
+      const html  = json.contents || '';
+      // Strip tags and collapse whitespace
+      const text  = html.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, ' ')
+                        .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, ' ')
+                        .replace(/<[^>]+>/g, ' ')
+                        .replace(/&nbsp;/gi, ' ')
+                        .replace(/&amp;/gi, '&')
+                        .replace(/\s+/g, ' ');
+      const found = extractDeadlineFromText(text);
+      if (found) {
+        const { error } = await _db.from('openings').update({ deadline: found }).eq('id', o.id);
+        if (!error) {
+          o.deadline = found;
+          // Re-render just this card in place
+          const cardEl = document.getElementById('card-' + o.id);
+          if (cardEl) {
+            const tmp = document.createElement('div');
+            tmp.innerHTML = renderCardHTML(o);
+            const newCard = tmp.firstElementChild;
+            cardEl.replaceWith(newCard);
+            const sel = document.getElementById('sel-' + o.id);
+            if (sel) {
+              sel.addEventListener('change', ev => {
+                setStatus(o.id, ev.target.value);
+                applyStatusClass(sel, ev.target.value);
+                renderMyApplications();
+              });
+            }
+          }
+          renderMyApplications();
+        }
+      }
+    } catch (err) {
+      console.warn('Auto-fill deadline failed for', o.chambers_name, ':', err.message || err);
+    }
+  }
 }
 
 // ============================================================
@@ -2157,12 +2397,17 @@ async function init() {
   document.getElementById('filter-status').addEventListener('change',   applyFilters);
   document.getElementById('filter-area').addEventListener('change',     applyFilters);
   document.getElementById('filter-deadline').addEventListener('change', applyFilters);
+  document.getElementById('filter-sort').addEventListener('change',     applyFilters);
   document.getElementById('add-form').addEventListener('submit',        submitAddOpening);
+  document.getElementById('edit-form').addEventListener('submit',       submitEditOpening);
   document.getElementById('cv-upload-input').addEventListener('change', handleCVUpload);
   document.getElementById('template-save-btn').addEventListener('click', saveTemplate);
 
   // Fetch openings from Supabase
   await loadOpenings();
+
+  // Attempt to auto-fill missing deadlines (non-blocking)
+  autoFillDeadlines();
 
   // Log this visit and load visitor log (non-blocking)
   logVisit().then(() => loadVisitorLog());
