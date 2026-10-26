@@ -1117,7 +1117,7 @@ Yours faithfully,
       <div class="form-row">
         <div class="form-group">
           <label>Practice Areas</label>
-          <input type="text" name="practice_areas" placeholder="e.g. Criminal, Family">
+          <input type="text" name="practice_areas" placeholder="e.g. Chancery, Tax, Immigration">
         </div>
         <div class="form-group">
           <label>Location</label>
@@ -1209,7 +1209,7 @@ Yours faithfully,
       <div class="form-row">
         <div class="form-group">
           <label>Practice Areas</label>
-          <input type="text" name="practice_areas" placeholder="e.g. Criminal, Family">
+          <input type="text" name="practice_areas" placeholder="e.g. Chancery, Tax, Immigration">
         </div>
         <div class="form-group">
           <label>Location</label>
@@ -1442,14 +1442,15 @@ async function loadOpenings() {
     return;
   }
 
-   allOpenings = (data || []).filter(o => targetAreasFor(o).length > 0);
+  // Only keep chambers that practise in one of the target areas
+  allOpenings = (data || []).filter(o => targetAreasFor(o).length > 0);
   document.getElementById('openings-count').textContent = allOpenings.length;
   populatePracticeFilter();
   applyFilters();
 }
 
 // ——— Target practice areas ———
-// Each opening's free-text practice_areas is mapped onto these six labels.
+// Each opening's free-text practice_areas is mapped onto these eight labels.
 // Openings matching none of them are hidden from the tracker.
 const TARGET_AREAS = [
   { label: 'Civil Litigation',        re: /\bcivil\b(?!\s+liberties)|litigation|dispute|\bcommercial\b(?!\s+property)|professional liability|insurance|construction|banking|arbitration/i },
@@ -1458,6 +1459,8 @@ const TARGET_AREAS = [
   { label: 'Immigration',             re: /immigration|asylum/i },
   { label: 'Tax',                     re: /\btax(ation)?\b|\bvat\b/i },
   { label: 'Chancery',                re: /chancery|trusts?\b|probate|pensions/i },
+  { label: 'Employment',              re: /employment|discrimination|whistleblowing|\btupe\b/i },
+  { label: 'Common Law',              re: /common law|personal injury|clinical negligence|professional negligence|\btort\b/i },
 ];
 
 function targetAreasFor(o) {
@@ -1469,14 +1472,6 @@ function populatePracticeFilter() {
   const sel = document.getElementById('filter-area');
   sel.innerHTML = '<option value="">All Areas</option>';
   TARGET_AREAS.map(t => t.label).forEach(a => {
-        const t = a.trim();
-        if (t) seen.add(t);
-      });
-    }
-  });
-  const sel = document.getElementById('filter-area');
-  sel.innerHTML = '<option value="">All Areas</option>';
-  [...seen].sort().forEach(a => {
     const opt = document.createElement('option');
     opt.value = a;
     opt.textContent = a;
@@ -1486,7 +1481,7 @@ function populatePracticeFilter() {
 
 function applyFilters() {
   const statusF   = document.getElementById('filter-status').value;
-    const areaF     = document.getElementById('filter-area').value;
+  const areaF     = document.getElementById('filter-area').value;
   const deadlineF = document.getElementById('filter-deadline').value;
   const searchF   = document.getElementById('filter-search').value.toLowerCase().trim();
 
