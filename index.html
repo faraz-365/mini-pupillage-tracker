@@ -1442,17 +1442,33 @@ async function loadOpenings() {
     return;
   }
 
-  allOpenings = data || [];
+   allOpenings = (data || []).filter(o => targetAreasFor(o).length > 0);
   document.getElementById('openings-count').textContent = allOpenings.length;
   populatePracticeFilter();
   applyFilters();
 }
 
+// ——— Target practice areas ———
+// Each opening's free-text practice_areas is mapped onto these six labels.
+// Openings matching none of them are hidden from the tracker.
+const TARGET_AREAS = [
+  { label: 'Civil Litigation',        re: /\bcivil\b(?!\s+liberties)|litigation|dispute|\bcommercial\b(?!\s+property)|professional liability|insurance|construction|banking|arbitration/i },
+  { label: 'Corporate Transactions',  re: /corporate|company law|\bcompany\b|insolvency|restructuring|mergers|\bm&a\b/i },
+  { label: 'Commercial Property',     re: /commercial property|real estate|(?<!intellectual\s)\bproperty\b|landlord/i },
+  { label: 'Immigration',             re: /immigration|asylum/i },
+  { label: 'Tax',                     re: /\btax(ation)?\b|\bvat\b/i },
+  { label: 'Chancery',                re: /chancery|trusts?\b|probate|pensions/i },
+];
+
+function targetAreasFor(o) {
+  const text = o.practice_areas || '';
+  return TARGET_AREAS.filter(t => t.re.test(text)).map(t => t.label);
+}
+
 function populatePracticeFilter() {
-  const seen = new Set();
-  allOpenings.forEach(o => {
-    if (o.practice_areas) {
-      o.practice_areas.split(',').forEach(a => {
+  const sel = document.getElementById('filter-area');
+  sel.innerHTML = '<option value="">All Areas</option>';
+  TARGET_AREAS.map(t => t.label).forEach(a => {
         const t = a.trim();
         if (t) seen.add(t);
       });
@@ -1470,7 +1486,7 @@ function populatePracticeFilter() {
 
 function applyFilters() {
   const statusF   = document.getElementById('filter-status').value;
-  const areaF     = document.getElementById('filter-area').value.toLowerCase();
+    const areaF     = document.getElementById('filter-area').value;
   const deadlineF = document.getElementById('filter-deadline').value;
   const searchF   = document.getElementById('filter-search').value.toLowerCase().trim();
 
@@ -1489,7 +1505,7 @@ function applyFilters() {
       return false;
     }
 
-    if (areaF && !(o.practice_areas || '').toLowerCase().includes(areaF)) return false;
+    if (areaF && !targetAreasFor(o).includes(areaF)) return false;
 
     if (deadlineF === 'week'   && !isThisWeek(o.deadline))  return false;
     if (deadlineF === 'month'  && !isThisMonth(o.deadline)) return false;
@@ -1587,7 +1603,7 @@ function renderCards(openings) {
 function renderCardHTML(o) {
   const status    = getStatus(o.id);
   const statusCfg = STATUS_LIST.find(s => s.value === status) || STATUS_LIST[0];
-  const areas     = (o.practice_areas || '').split(',').map(a => a.trim()).filter(Boolean);
+  const areas     = targetAreasFor(o);
   const dlClass   = deadlineClass(o.deadline);
   const srcClass  = (o.source === 'auto') ? 'auto' : 'manual';
   const srcLabel  = (o.source === 'auto') ? 'auto-scraped' : 'manual';
