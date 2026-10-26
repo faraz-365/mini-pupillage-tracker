@@ -169,7 +169,7 @@ def extract_deadline_from_soup(soup: BeautifulSoup) -> str | None:
 #  Practice area detection
 # ============================================================
 
-# Only these six practice areas are tracked. Each regex maps page text onto one label.
+# Only these eight practice areas are tracked. Each regex maps page text onto one label.
 TARGET_AREAS = [
     ("Civil Litigation",       re.compile(r"\bcivil\b(?!\s+liberties)|litigation|dispute resolution|commercial (?:law|litigation|disputes)|professional liability|insurance|construction|banking|arbitration", re.I)),
     ("Corporate Transactions", re.compile(r"corporate|company law|insolvency|restructuring|mergers", re.I)),
@@ -177,6 +177,8 @@ TARGET_AREAS = [
     ("Immigration",            re.compile(r"immigration|asylum", re.I)),
     ("Tax",                    re.compile(r"\btax(?:ation)?\b|\bvat\b", re.I)),
     ("Chancery",               re.compile(r"chancery|\btrusts?\b|probate|pensions", re.I)),
+    ("Employment",             re.compile(r"employment|discrimination|whistleblowing|\btupe\b", re.I)),
+    ("Common Law",             re.compile(r"common law|personal injury|clinical negligence|professional negligence|\btort\b", re.I)),
 ]
 
 
@@ -441,7 +443,7 @@ CHAMBERS = [
     ("Radcliffe Chambers",         "https://www.radcliffechambers.com",      "Chancery, Commercial Property, Tax, Civil Litigation"),
     ("Ten Old Square",             "https://www.tenoldsquare.com",           "Chancery, Tax"),
     ("Enterprise Chambers",        "https://www.enterprisechambers.com",     "Chancery, Commercial Property, Corporate Transactions, Civil Litigation"),
-    ("4 New Square",               "https://www.4newsquare.com",             "Civil Litigation, Chancery"),
+    ("4 New Square",               "https://www.4newsquare.com",             "Civil Litigation, Chancery, Common Law"),
     # ——— Corporate ———
     ("Erskine Chambers",           "https://www.erskinechambers.com",        "Corporate Transactions, Chancery, Civil Litigation"),
     ("South Square",               "https://www.southsquare.com",            "Corporate Transactions, Civil Litigation"),
@@ -460,38 +462,32 @@ CHAMBERS = [
     ("Pump Court Tax Chambers",    "https://www.pumptax.com",                "Tax"),
     ("Gray's Inn Tax Chambers",    "https://www.taxbar.com",                 "Tax"),
     ("Monckton Chambers",          "https://www.monckton.com",               "Tax, Civil Litigation"),
-    ("Devereux Chambers",          "https://www.devchambers.co.uk",          "Tax, Civil Litigation"),
     # ——— Civil Litigation (commercial and general civil) ———
     ("Essex Court Chambers",       "https://www.essexcourt.com",             "Civil Litigation"),
     ("Brick Court Chambers",       "https://www.brickcourt.co.uk",           "Civil Litigation"),
     ("20 Essex Street",            "https://www.20essexst.com",              "Civil Litigation"),
-    ("Blackstone Chambers",        "https://www.blackstonechambers.com",     "Civil Litigation"),
-    ("39 Essex Chambers",          "https://www.39essex.com",                "Civil Litigation"),
-    ("Outer Temple Chambers",      "https://www.outertemple.com",            "Civil Litigation"),
-    ("Henderson Chambers",         "https://www.hendersonchambers.co.uk",    "Civil Litigation"),
-    ("Crown Office Chambers",      "https://www.crownoffice.com",            "Civil Litigation"),
-    ("4 Pump Court",               "https://www.4pumpcourt.com",             "Civil Litigation"),
     ("Keating Chambers",           "https://www.keatingchambers.com",        "Civil Litigation"),
-    ("Littleton Chambers",         "https://www.littletonchambers.com",      "Civil Litigation"),
+    ("Atkin Chambers",             "https://www.atkinchambers.com",          "Civil Litigation"),
+    ("4 Pump Court",               "https://www.4pumpcourt.com",             "Civil Litigation"),
     # ——— Employment ———
-    ("Cloisters",                  "https://www.cloisters.com",              "Employment, Discrimination, Human Rights"),
-    ("Old Square Chambers",        "https://www.oldsquare.co.uk",            "Employment, Personal Injury"),
-    ("Devereux Chambers",          "https://www.devchambers.co.uk",          "Employment, Personal Injury, Tax"),
-    ("5 Essex Court",              "https://www.5essexcourt.co.uk",          "Employment, Regulatory, Police Law"),
-    # ——— Mixed / General Common Law ———
-    ("Keating Chambers",           "https://www.keatingchambers.com",        "Construction, Engineering, Technology"),
-    ("Atkin Chambers",             "https://www.atkinchambers.com",          "Construction, Engineering, Energy"),
-    ("4 Pump Court",               "https://www.4pumpcourt.com",             "Construction, Commercial, Insurance"),
-    ("Guildhall Chambers",         "https://www.guildhallchambers.co.uk",    "Criminal, Civil, Employment"),
-    ("St Ives Chambers",           "https://www.stiveschambers.co.uk",       "Criminal, Family, Civil"),
-    ("Kings Chambers",             "https://www.kingschambers.com",          "Commercial, Employment, Personal Injury"),
-    ("Exchange Chambers",          "https://www.exchangechambers.co.uk",     "Criminal, Civil, Employment, Family"),
-    ("Parklane Plowden",           "https://www.parklaneplowden.co.uk",      "Personal Injury, Clinical Negligence, Employment"),
-    ("St Philips Chambers",        "https://www.st-philips.com",             "Commercial, Criminal, Employment, Family"),
-    ("Trinity Chambers",           "https://www.trinitychambers.co.uk",      "Criminal, Family, Civil"),
-    ("Arden Chambers",             "https://www.ardenchambers.com",          "Housing, Local Government, Planning"),
-    ("Civitas Law",                "https://www.civitaslaw.com",             "Criminal, Civil"),
-    ("Apex Chambers",              "https://www.apexchambers.co.uk",         "Criminal, Civil, Family"),
+    ("Cloisters",                  "https://www.cloisters.com",              "Employment, Common Law"),
+    ("Old Square Chambers",        "https://www.oldsquare.co.uk",            "Employment, Common Law"),
+    ("Devereux Chambers",          "https://www.devchambers.co.uk",          "Employment, Tax, Civil Litigation"),
+    ("Littleton Chambers",         "https://www.littletonchambers.com",      "Employment, Civil Litigation"),
+    ("11KBW",                      "https://www.11kbw.com",                  "Employment, Civil Litigation"),
+    ("5 Essex Court",              "https://www.5essexcourt.co.uk",          "Employment, Common Law"),
+    ("Blackstone Chambers",        "https://www.blackstonechambers.com",     "Employment, Civil Litigation"),
+    # ——— Common Law ———
+    ("39 Essex Chambers",          "https://www.39essex.com",                "Common Law, Civil Litigation"),
+    ("Outer Temple Chambers",      "https://www.outertemple.com",            "Common Law, Employment, Civil Litigation"),
+    ("Henderson Chambers",         "https://www.hendersonchambers.co.uk",    "Common Law, Civil Litigation"),
+    ("Crown Office Chambers",      "https://www.crownoffice.com",            "Common Law, Civil Litigation"),
+    ("1 Crown Office Row",         "https://www.1cor.com",                   "Common Law, Civil Litigation"),
+    ("Temple Garden Chambers",     "https://www.tgchambers.com",             "Common Law, Civil Litigation"),
+    ("1 Chancery Lane",            "https://www.1chancerylane.com",          "Common Law, Civil Litigation"),
+    ("2 Temple Gardens",           "https://www.2tg.co.uk",                  "Common Law, Civil Litigation"),
+    ("12 King's Bench Walk",       "https://www.12kbw.co.uk",                "Common Law, Civil Litigation"),
+    ("Pump Court Chambers",        "https://www.pumpcourt.com",              "Common Law, Civil Litigation"),
     # ——— Immigration ———
     ("Garden Court Chambers",      "https://www.gclaw.co.uk",                "Immigration"),
     ("Doughty Street Chambers",    "https://www.doughtystreet.co.uk",        "Immigration, Civil Litigation"),
@@ -501,7 +497,7 @@ CHAMBERS = [
     ("Field Court Chambers",       "https://www.fieldcourt.co.uk",           "Immigration"),
     ("1 Pump Court",               "https://www.1pumpcourt.co.uk",           "Immigration"),
 ]
-   
+
 
 # ============================================================
 #  Main
@@ -543,7 +539,7 @@ def main() -> None:
 
     # ——— Insert new entries into Supabase ———
     log.info("\n=== Inserting into Supabase ===")
-       default_areas = {name.lower(): areas for (name, _url, areas) in CHAMBERS}
+    default_areas = {name.lower(): areas for (name, _url, areas) in CHAMBERS}
     for entry in all_entries:
         if not entry.get("chambers_name"):
             continue
@@ -554,6 +550,7 @@ def main() -> None:
             log.info("  – Not a target practice area, skipping: %s", entry["chambers_name"])
             skip_count += 1
             continue
+        try:
             inserted = insert_opening(entry)
             if inserted:
                 log.info("  ✓ Inserted: %s (deadline: %s)", entry["chambers_name"], entry.get("deadline"))
